@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Firebase Email OTP Verification + Dashboard</title>
+<style>
+  body { font-family: Arial; background: #eef; padding: 20px; }
+  input, button { display: block; margin: 10px 0; padding: 10px; width: 300px; }
+  #dashboard { margin-top: 30px; padding: 20px; background: white; border-radius: 8px; }
+  #status { font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h2>Register / Login</h2>
+
+<input type="email" id="email" placeholder="Email" />
+<input type="password" id="password" placeholder="Password" />
+<button id="registerBtn">Register</button>
+<button id="loginBtn">Login</button>
+
+<div id="otpSection" style="display:none;">
+  <input type="text" id="otpInput" placeholder="Enter OTP" />
+  <button id="verifyOtpBtn">Verify OTP</button>
+</div>
+
+<div id="status"></div>
+
+<div id="dashboard" style="display:none;">
+  <h3>Dashboard</h3>
+  <p id="welcome"></p>
+  <p id="verificationStatus"></p>
+  <button id="logoutBtn">Logout</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBFtX8CS9cc9dyKjAaTQGVdl_2DuMPrvSo",
+    authDomain: "sms-1f947.firebaseapp.com",
+    projectId: "sms-1f947",
+    storageBucket: "sms-1f947.appspot.com",
+    messagingSenderId: "21605382759",
+    appId: "1:21605382759:web:c64ce8fbbc91a92697f2c2",
+    measurementId: "G-1HCR38S633"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const registerBtn = document.getElementById('registerBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const status = document.getElementById('status');
+
+  const otpSection = document.getElementById('otpSection');
+  const otpInput = document.getElementById('otpInput');
+  const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+
+  const dashboard = document.getElementById('dashboard');
+  const welcome = document.getElementById('welcome');
+  const verificationStatus = document.getElementById('verificationStatus');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  function showStatus(msg, isError = false) {
+    status.style.color = isError ? 'red' : 'green';
+    status.textContent = msg;
+  }
+
+  registerBtn.onclick = () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!email || !password) {
+      showStatus('Fill email & password', true);
+      return;
+    }
+    auth.createUserWithEmailAndPassword(email, password)
+      .then(() => {
+        showStatus('Registered! Please login.');
+      })
+      .catch(e => showStatus(e.message, true));
+  };
+
+  loginBtn.onclick = () => {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+    if (!email || !password) {
+      showStatus('Fill email & password', true);
+      return;
+    }
+    auth.signInWithEmailAndPassword(email, password)
+      .then(userCredential => {
+        const user = userCredential.user;
+        fetch('/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email, uid: user.uid })
+        }).then(r => r.json()).then(data => {
+          if (data.success) {
+            showStatus('OTP sent to your email!');
+            otpSection.style.display = 'block';
+          } else {
+            showStatus('Failed to send OTP', true);
+          }
+        });
+      })
+      .catch(e => showStatus(e.message, true));
+  };
+
+  verifyOtpBtn.onclick = () => {
+    const otp = otpInput.value.trim();
+    const user = auth.currentUser;
+    if (!otp || !user) {
+      showStatus('Enter OTP', true);
+      return;
+    }
+    fetch('/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid, otp })
+    }).then(r => r.json()).then(data => {
+      if (data.success) {
+        showStatus('Verified successfully!');
+        otpSection.style.display = 'none';
+        showDashboard(user);
+      } else {
+        showStatus(data.message, true);
+      }
+    });
+  };
+
+  function showDashboard(user) {
+    otpSection.style.display = 'none';
+    dashboard.style.display = 'block';
+    welcome.textContent = `Welcome, ${user.email}`;
+    db.collection('users').doc(user.uid).get().then(doc => {
+      const data = doc.data();
+      verificationStatus.textContent = data && data.verified ? 'Email Verified ✅' : 'Email Not Verified ❌';
+    });
+  }
+
+  logoutBtn.onclick = () => {
+    auth.signOut().then(() => {
+      dashboard.style.display = 'none';
+      otpSection.style.display = 'none';
+      emailInput.value = '';
+      passwordInput.value = '';
+      otpInput.value = '';
+      showStatus('Logged out');
+    });
+  };
+
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      showDashboard(user);
+    } else {
+      dashboard.style.display = 'none';
+      otpSection.style.display = 'none';
+      showStatus('');
+    }
+  });
+</script>
+
+</body>
+</html>
