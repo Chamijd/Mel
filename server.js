@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: 'ransikachamindu43@gmail.com',
-    pass: 'xzxg yiry fafh dmfv
+    pass: 'xzxg yiry fafh dmfv'
 '  // Use App Password for Gmail 2FA accounts
   }
 });
