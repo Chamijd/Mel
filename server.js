@@ -22,8 +22,7 @@ const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
     user: 'ransikachamindu43@gmail.com',
-    pass: 'xzxg yiry fafh dmfv'
-'  // Use App Password for Gmail 2FA accounts
+    pass: 'xzxg yiry fafh dmfv' // Use App Password for Gmail 2FA accounts
   }
 });
 
@@ -40,7 +39,7 @@ app.post('/send-otp', async (req, res) => {
     }, { merge: true });
 
     await transporter.sendMail({
-      from: '"Darkcybercrew" <YOUR_GMAIL@gmail.com>',
+      from: '"Darkcybercrew" <ransikachamindu43@gmail.com>',
       to: email,
       subject: 'Your OTP Code',
       text: `Your OTP code is: ${otp}`
@@ -74,5 +73,5 @@ app.post('/verify-otp', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`✅ Server running at http://localhost:${PORT}`);
 });
